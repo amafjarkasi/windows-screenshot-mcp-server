@@ -41,8 +41,8 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/screenshot-mcp-server.git
-cd screenshot-mcp-server
+git clone https://github.com/amafjarkasi/windows-screenshot-mcp-server.git
+cd windows-screenshot-mcp-server
 
 # Download dependencies
 make deps
@@ -376,9 +376,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Issues:** [GitHub Issues](https://github.com/yourusername/screenshot-mcp-server/issues)
-- **Documentation:** [Wiki](https://github.com/yourusername/screenshot-mcp-server/wiki)
-- **Discussions:** [GitHub Discussions](https://github.com/yourusername/screenshot-mcp-server/discussions)
+- **Issues:** [GitHub Issues](https://github.com/amafjarkasi/windows-screenshot-mcp-server/issues)
+- **Documentation:** [Wiki](https://github.com/amafjarkasi/windows-screenshot-mcp-server/wiki)
+- **Discussions:** [GitHub Discussions](https://github.com/amafjarkasi/windows-screenshot-mcp-server/discussions)
 
 ---
 
