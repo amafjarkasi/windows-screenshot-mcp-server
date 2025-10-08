@@ -81,3 +81,6 @@ data/
 
 # Local history
 .history/
+
+# TaskMaster private files (business analysis, research, etc.)
+.taskmaster/
