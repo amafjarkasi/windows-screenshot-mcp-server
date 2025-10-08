@@ -174,20 +174,23 @@ type MCPError struct {
 
 // ScreenshotEngine defines the core screenshot functionality
 type ScreenshotEngine interface {
-	// Capture by window handle
+	// Standard capture methods
 	CaptureByHandle(handle uintptr, options *CaptureOptions) (*ScreenshotBuffer, error)
-	
-	// Capture by window title (supports partial matches)
 	CaptureByTitle(title string, options *CaptureOptions) (*ScreenshotBuffer, error)
-	
-	// Capture by process ID
 	CaptureByPID(pid uint32, options *CaptureOptions) (*ScreenshotBuffer, error)
-	
-	// Capture by window class name
 	CaptureByClassName(className string, options *CaptureOptions) (*ScreenshotBuffer, error)
-	
-	// Capture full screen
 	CaptureFullScreen(monitor int, options *CaptureOptions) (*ScreenshotBuffer, error)
+	
+	// Advanced capture methods for hidden/tray applications
+	CaptureHiddenByPID(pid uint32, options *CaptureOptions) (*ScreenshotBuffer, error)
+	CaptureTrayApp(processName string, options *CaptureOptions) (*ScreenshotBuffer, error)
+	CaptureWithFallbacks(handle uintptr, options *CaptureOptions) (*ScreenshotBuffer, error)
+	
+	// Window discovery methods
+	EnumerateAllProcessWindows(pid uint32) ([]WindowInfo, error)
+	FindSystemTrayApps() ([]WindowInfo, error)
+	FindHiddenWindows() ([]WindowInfo, error)
+	FindCloakedWindows() ([]WindowInfo, error)
 }
 
 // WindowManager defines window management operations
@@ -261,16 +264,47 @@ type StreamManager interface {
 
 // Options structs
 
+// CaptureMethod defines the preferred capture method
+type CaptureMethod string
+
+const (
+	CaptureAuto        CaptureMethod = "auto"        // Automatically select best method
+	CaptureBitBlt      CaptureMethod = "bitblt"       // Standard BitBlt (visible windows only)
+	CapturePrintWindow CaptureMethod = "printwindow"  // PrintWindow API
+	CaptureDWMThumbnail CaptureMethod = "dwmthumbnail" // DWM Thumbnail (universal)
+	CaptureWMPrint     CaptureMethod = "wmprint"      // WM_PRINT message
+	CaptureStealthRestore CaptureMethod = "stealth"   // Temporarily restore minimized windows
+	CaptureProcessMemory CaptureMethod = "memory"     // Direct process memory access
+)
+
 // CaptureOptions defines options for screenshot capture
 type CaptureOptions struct {
-	IncludeCursor    bool       `json:"include_cursor"`
-	IncludeFrame     bool       `json:"include_frame"`
-	Region           *Rectangle `json:"region"`
-	ScaleFactor      float64    `json:"scale_factor"`
-	AllowMinimized   bool       `json:"allow_minimized"`
-	RestoreWindow    bool       `json:"restore_window"`
-	WaitForVisible   time.Duration `json:"wait_for_visible"`
-	RetryCount       int        `json:"retry_count"`
+	IncludeCursor    bool          `json:"include_cursor"`
+	IncludeFrame     bool          `json:"include_frame"`
+	Region           *Rectangle    `json:"region"`
+	ScaleFactor      float64       `json:"scale_factor"`
+	
+	// Visibility options
+	AllowMinimized   bool          `json:"allow_minimized"`   // Allow capturing minimized windows
+	AllowHidden      bool          `json:"allow_hidden"`      // Allow capturing hidden windows
+	AllowTrayApps    bool          `json:"allow_tray_apps"`   // Allow capturing system tray applications
+	AllowCloaked     bool          `json:"allow_cloaked"`     // Allow capturing cloaked windows (UWP apps)
+	
+	// Restoration options
+	RestoreWindow    bool          `json:"restore_window"`    // Temporarily restore minimized windows
+	StealthRestore   bool          `json:"stealth_restore"`   // Restore without activating/focusing
+	WaitForVisible   time.Duration `json:"wait_for_visible"`  // Wait time after restore
+	
+	// Advanced options
+	PreferredMethod  CaptureMethod `json:"preferred_method"`  // Preferred capture method
+	UseDWMThumbnails bool          `json:"use_dwm_thumbnails"` // Force use of DWM thumbnails
+	ForceRender      bool          `json:"force_render"`      // Force window to render before capture
+	DetectTrayApps   bool          `json:"detect_tray_apps"`  // Automatically detect tray applications
+	
+	// Fallback options
+	RetryCount       int           `json:"retry_count"`       // Number of retry attempts
+	FallbackMethods  []CaptureMethod `json:"fallback_methods"` // Methods to try if preferred fails
+	
 	CustomProperties map[string]string `json:"custom_properties"`
 }
 
@@ -302,10 +336,28 @@ func DefaultCaptureOptions() *CaptureOptions {
 		IncludeCursor:    false,
 		IncludeFrame:     true,
 		ScaleFactor:      1.0,
+		
+		// Visibility options
 		AllowMinimized:   true,
+		AllowHidden:      true,
+		AllowTrayApps:    true,
+		AllowCloaked:     true,
+		
+		// Restoration options
 		RestoreWindow:    false,
+		StealthRestore:   true,
 		WaitForVisible:   time.Second * 2,
+		
+		// Advanced options
+		PreferredMethod:  CaptureAuto,
+		UseDWMThumbnails: false,
+		ForceRender:      false,
+		DetectTrayApps:   true,
+		
+		// Fallback options
 		RetryCount:       3,
+		FallbackMethods:  []CaptureMethod{CaptureDWMThumbnail, CapturePrintWindow, CaptureWMPrint, CaptureStealthRestore},
+		
 		CustomProperties: make(map[string]string),
 	}
 }

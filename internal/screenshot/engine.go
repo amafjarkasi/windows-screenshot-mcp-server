@@ -555,6 +555,11 @@ func (e *WindowsScreenshotEngine) restoreWindow(handle uintptr) error {
 // Ensure we implement the interface
 var _ types.ScreenshotEngine = (*WindowsScreenshotEngine)(nil)
 
+// Add constants for the advanced features
+const (
+	SW_SHOWNOACTIVATE = 4
+)
+
 func init() {
 	// Lock OS thread for Windows API calls
 	runtime.LockOSThread()
